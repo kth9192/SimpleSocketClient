@@ -11,24 +11,22 @@ import android.view.View;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.reflect.TypeToken;
 import com.kth.simplesocketclient.databinding.ActivityMainBinding;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Type;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -39,7 +37,9 @@ public class MainActivity extends AppCompatActivity {
     private Handler handler;
     private Gson gson;
     private JsonParser parser;
+    private Socket socket;
 
+    //TODO 20바이트 이상일 때, 유실되는 나머지 바이트를 복구하는 법.
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,11 +53,17 @@ public class MainActivity extends AppCompatActivity {
                 .create();
         parser = new JsonParser();
         handler = new Handler();
+
+        activityMainBinding.connectSocket.setOnClickListener(v -> {
+            SocketThread socketThread = new SocketThread();
+            socketThread.start();
+        });
+
         activityMainBinding.send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ClientThread thread = new ClientThread();
-                thread.start();
+                ClientUIThread clientUIThread = new ClientUIThread(socket);
+                clientUIThread.start();
             }
         });
     }
@@ -68,45 +74,58 @@ public class MainActivity extends AppCompatActivity {
         activityMainBinding.output.setText("없음");
     }
 
-    class ClientThread extends Thread {
+    class SocketThread extends Thread { // 연결부
+
+        public void run() {
+            try {
+                socket = new Socket(IP, PORT);
+
+                final byte[] messageByte = new byte[20];
+                DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+                inputStream.read(messageByte);
+
+                String str = new String(messageByte, StandardCharsets.UTF_8);
+                Log.d(TAG + " SocketThread", str.trim());
+            } catch (IOException e) {
+                Log.e(TAG, e.getLocalizedMessage());
+            }
+        }
+    }
+
+    class ClientUIThread extends Thread { // 전송부
+
+        public ClientUIThread(Socket socket) {
+        }
 
         public void run() {
 
             try {
-                Socket socket = new Socket(IP, PORT);
+                DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
 
-                OutputStream outputStream = socket.getOutputStream();
+//                Date date = new Date();
+                String dateString = "{\"REQ\":\"WFSendDeviceInfo\",\"WF_SERIAL\":\"12345678\"}";
 
-                Date date = new Date();
-                String dateString = "the test sendtext";
-
-                byte b[] = date.toString().getBytes();
+//                byte b[] = date.toString().getBytes();
                 byte b2[] = dateString.getBytes();
 
                 outputStream.write(b2);
                 outputStream.flush();
-                Log.d("ClientThread", "서버로 보냄.");
+                Log.d(TAG + " ClientUIThread", "서버로 보냄.");
 
-                final byte[] messageByte = new byte[1024];
+                final byte[] messageByte = new byte[50];
                 InputStream inputStream = socket.getInputStream();
                 inputStream.read(messageByte);
 
-//                String str = new String(messageByte, StandardCharsets.UTF_8);
-//                Log.d("ClientThread" , str);
+                String str = new String(messageByte, StandardCharsets.UTF_8).trim(); // 바이트배열의 공백제거
+                Log.d(TAG + " ClientUIThread", str);
 
-                String tmp = parser.parse(new String(messageByte)).getAsString();
-                tmp = tmp.replace("\\u0000", "");
-                tmp = tmp.replace("\\","");
+                BaseModel tmp = gson.fromJson(str, BaseModel.class);
+//                Log.d(TAG + " ClientUIThread", tmp.getAsString());
 
-
-                Log.d("ClientThread" , tmp);
-
-                JSONObject jsonObject = new JSONObject(tmp);
-
-                Log.d("ClientThread", "받은 데이터 : " + jsonObject.get("name"));
+                Log.d(TAG + " 0ClientUIThread", "받은 데이터 : " + tmp.getWF_SER_NUM());
 
 //                for (byte tmp : message){
-//                    Log.d("ClientThread", "받은 데이터 : " + tmp);
+//                    Log.d("ClientUIThread", "받은 데이터 : " + tmp);
 //                }
 
                 handler.post(new Runnable() {
@@ -115,10 +134,10 @@ public class MainActivity extends AppCompatActivity {
                         activityMainBinding.output.setText("받은 데이터 : " + new String(messageByte));
                     }
                 });
-
             } catch (Exception e) {
                 Log.e(TAG, e.getMessage());
             }
+
         }
     }
 }

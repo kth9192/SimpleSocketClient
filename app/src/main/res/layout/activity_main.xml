@@ -23,6 +23,22 @@
             app:layout_constraintVertical_bias="0.128" />
 
         <Button
+            android:id="@+id/connect_socket"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="연결"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/output"
+            app:layout_constraintVertical_bias="0.416" />
+
+        <Button
             android:id="@+id/send"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
@@ -30,13 +46,13 @@
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
             android:layout_marginBottom="8dp"
-            android:text="send!!"
+            android:text="전송"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/output"
-            app:layout_constraintVertical_bias="0.983" />
+            app:layout_constraintTop_toBottomOf="@+id/connect_socket"
+            app:layout_constraintVertical_bias="0.032" />
 
         <TextView
             android:id="@+id/serverResponse"
